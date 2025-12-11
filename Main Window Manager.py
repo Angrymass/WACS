@@ -2,6 +2,8 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLabel, QPushButton
 
 crono_voti = "Nessun Voto"
+media = "Nessun Voto"
+
 listvoti = []
 
 class MainWindow(QMainWindow):
@@ -15,13 +17,13 @@ class MainWindow(QMainWindow):
 		self.voti = QLabel(crono_voti)
 		self.voti.setWordWrap(True)
 
-		self.totmedia = QLabel("Media: 8")
+		self.totmedia = QLabel(media)
 		self.totmedia.setWordWrap(True)
 
 		self.aggvoto = QPushButton("Aggiungi Voto...")
 		self.aggvoto.clicked.connect(self.nvoto)
 
-		self.matmedia = QLabel("Medie Materie\nMatematica:10\nDisegno:6")
+		self.matmedia = QLabel("Medie Materie")
 
 		layout = QGridLayout()
 		layout.addWidget(self.voti, 0, 0)
@@ -35,14 +37,23 @@ class MainWindow(QMainWindow):
 		self.aggiorna()
 
 	def aggiorna(self):
-		self.voti.setText(crono_voti)
+		self.make_crono_voti()
+		self.aggmedia()
+
+	def aggmedia(self):
+		if len(listvoti) != 0:
+			global media
+			sommavoti = 0
+			for i in range(0, len(listvoti)):
+				sommavoti = sommavoti + listvoti[i][0]
+			media = round((sommavoti / len(listvoti)), 2)
+			media = "Media: %s" %media
+			self.totmedia.setText(media)
 
 	def nvoto(self):
-		val = int(input("Voto: "))
+		val = float(input("Voto: "))
 		mat = input("Materia: ")
 		listvoti.append([val, mat])
-		print(listvoti)
-		self.make_crono_voti()
 		self.aggiorna()
 
 	def make_crono_voti(self):
@@ -51,7 +62,8 @@ class MainWindow(QMainWindow):
 			crono_voti = ""
 			for i in range(0, len(listvoti)):
 				crono_voti += "%s - %s\n" %(listvoti[i][0], listvoti[i][1])
-			print(crono_voti)
+		self.voti.setText(crono_voti)
+			
 
 app = QApplication(sys.argv)
 window = MainWindow()
