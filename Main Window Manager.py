@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLabel, QPushButton, QDialog, QDialogButtonBox, QLineEdit
+from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLabel, QPushButton, QDialog, QDialogButtonBox, QLineEdit, QMessageBox
+from PyQt6.QtGui import QDoubleValidator
 
 crono_voti = "Nessun Voto"
 media = "Nessun Voto"
@@ -64,7 +65,7 @@ class MainWindow(QMainWindow):
 			media = "Media: %s" %media
 			self.totmedia.setText(media)
 
-	def aggmatmedia(self):
+	def aggmatmedia(self):	
 		global matmedia
 		if len(crono_materie) != 0:
 			matmedia = "Medie Materie:\n"
@@ -81,9 +82,11 @@ class DialogAggiungiVoto(QDialog):
 		self.votolabel = QLabel("Inserisci il voto:")
 		self.matlabel = QLabel("Inserisci la materia:")
 		self.votoinput = QLineEdit()
+		self.votoinput.setPlaceholderText("Voto (0.0-10.0)")
 		self.matinput = QLineEdit()
+		self.matinput.setPlaceholderText("Materia")
 		buttonbox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-		buttonbox.accepted.connect(self.accept)
+		buttonbox.accepted.connect(self.okvoto)
 		buttonbox.rejected.connect(self.reject)
 		layout = QGridLayout()
 		layout.addWidget(self.votolabel, 0, 0)
@@ -93,10 +96,22 @@ class DialogAggiungiVoto(QDialog):
 		layout.addWidget(buttonbox, 2, 0, 1, 2)
 		self.setLayout(layout)
 
-	def accept(self):
-		voto = float(self.votoinput.text())
-		materia = self.matinput.text()
+	def okvoto(self):
+		try:
+			voto = float(self.votoinput.text().strip())
+			materia = self.matinput.text().strip()
+			if voto < 0 or voto > 10:
+				raise ValueError
+			if materia == "":
+				QMessageBox.warning(self, "Errore", "Inserisci una materia valida.")
+				return
+		except ValueError:
+			QMessageBox.warning(self, "Errore", "Inserisci un voto valido.")
+			return
 		listvoti.append([voto, materia])
+		if materia not in crono_materie:
+			crono_materie[materia] = []
+		crono_materie[materia].append(voto)
 		self.parent().aggiorna()
 		super().accept()
 
