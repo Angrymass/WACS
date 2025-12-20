@@ -1,119 +1,173 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGridLayout, QWidget, QLabel, QPushButton, QDialog, QDialogButtonBox, QLineEdit, QMessageBox
-from PyQt6.QtGui import QDoubleValidator
+from PyQt6.QtGui import QIcon
 
-crono_voti = "Nessun Voto"
-media = "Nessun Voto"
-matmedia = "Nessuna Materia"
-
-crono_materie = {}
-listvoti = []
+default_crono = "Nessun Voto"
+default_media_tot = "Nessun Voto"
+default_media_materie = "Nessuna Materia"
 
 class MainWindow(QMainWindow):
 
-	def __init__(self):
-		super().__init__() 
+    def __init__(self):
+        super().__init__() 
 
-		self.setWindowTitle("Calcolatore Media Ponderata Materie")
-		self.setMinimumSize(300, 300)
+        self.list_voti = []
+        self.crono_materie = {}
+        self.label_crono_voti_text = default_crono
+        self.label_media_tot_text = default_media_tot
+        self.label_media_materie_text = default_media_materie
 
-		self.voti = QLabel(crono_voti)
-		self.voti.setWordWrap(True)
+        self.setWindowTitle("Calcolatore Media Ponderata Materie")
+        self.setMinimumSize(300, 300)
+        try:
+            self.setWindowIcon(QIcon("Tachimetro.png"))
+        except:
+            pass
+        self.label_crono_voti = QLabel(self.label_crono_voti_text)
+        self.label_crono_voti.setWordWrap(True)
 
-		self.totmedia = QLabel(media)
-		self.totmedia.setWordWrap(True)
+        self.label_media_tot = QLabel(self.label_media_tot_text)
+        self.label_media_tot.setWordWrap(True)
 
-		self.aggvoto = QPushButton("Aggiungi Voto...")
-		self.aggvoto.clicked.connect(self.nvoto)
+        self.button_aggvoto = QPushButton("Aggiungi Voto...")
+        self.button_aggvoto.clicked.connect(self.nvoto)
 
-		self.matmedia = QLabel(matmedia)
+        self.label_media_materie = QLabel(self.label_media_materie_text)
+        self.label_media_materie.setWordWrap(True)
 
-		layout = QGridLayout()
-		layout.addWidget(self.voti, 0, 0)
-		layout.addWidget(self.totmedia, 0, 1)
-		layout.addWidget(self.aggvoto, 1, 0)
-		layout.addWidget(self.matmedia, 1, 1)
+        self.cancella_voto = QPushButton("Cancella Ultimo Voto")
+        self.cancella_voto.clicked.connect(self.on_cancella_voto)
 
-		widget = QWidget()
-		widget.setLayout(layout)
-		self.setCentralWidget(widget)
-		self.aggiorna()
+        layout = QGridLayout()
+        layout.addWidget(self.label_crono_voti, 0, 0)
+        layout.addWidget(self.label_media_tot, 0, 1)
+        layout.addWidget(self.button_aggvoto, 1, 0)
+        layout.addWidget(self.label_media_materie, 1, 1)
+        layout.addWidget(self.cancella_voto, 2, 0, 1, 2)
 
-	def nvoto(self):
-		DialogAggiungiVoto(self).exec()
-		self.aggiorna()	
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+        self.aggiorna()
 
-	def make_crono_voti(self):
-		global crono_voti
-		if len(listvoti) != 0:
-			crono_voti = ""
-			for i in range(0, len(listvoti)):
-				crono_voti += "%s - %s\n" %(listvoti[i][0], listvoti[i][1])
-		self.voti.setText(crono_voti)
-	
-	def aggiorna(self):
-		self.make_crono_voti()
-		self.aggmedia()
-		self.aggmatmedia()
+    def nvoto(self):
+        DialogAggiungiVoto(self).exec()
+        self.aggiorna()	
+    
+    def on_cancella_voto(self):
+        if len(self.list_voti) > 0:
+            self.list_voti.pop()
+        self.aggiorna()
 
-	def aggmedia(self):
-		if len(listvoti) != 0:
-			global media
-			sommavoti = 0
-			for i in range(0, len(listvoti)):
-				sommavoti = sommavoti + listvoti[i][0]
-			media = round((sommavoti / len(listvoti)), 2)
-			media = "Media: %s" %media
-			self.totmedia.setText(media)
+    def make_label_crono_voti(self):
+        if len(self.list_voti) != 0:
+            text = ""
+            for i in range(len(self.list_voti), 0, -1):
+                v = self.list_voti[i-1]
+                if v[2] == 100:
+                    text += "%s - %s\n" % (v[0], v[1])
+                else:
+                    text += "%s (peso %s) - %s\n" % (v[0], str(v[2]) + "%", v[1])
+        else:
+            text = default_crono
+        self.label_crono_voti.setText(text)
+    
+    def aggiorna(self):
+        self.make_crono_materie()
+        self.make_label_crono_voti()
+        self.make_label_media_tot()
+        self.make_label_media_materie()
 
-	def aggmatmedia(self):	
-		global matmedia
-		if len(crono_materie) != 0:
-			matmedia = "Medie Materie:\n"
-			for materia, voti in crono_materie.items():
-				sommavoti = sum(voti)
-				mediamat = round((sommavoti / len(voti)), 2)
-				matmedia += "%s: %s\n" %(materia, mediamat)
-			self.matmedia.setText(matmedia)
+    def make_label_media_tot(self):
+        if len(self.list_voti) != 0:
+            total = 0
+            peso = 0
+            for voto in self.list_voti:
+                total += voto[0] * (voto[2] / 100)
+                peso += (voto[2] / 100)
+            media = (total / peso) if peso != 0 else 0
+            media = str(round(media, 2))
+            text = "Media: %s" % media
+        else:
+            text = default_media_tot
+        self.label_media_tot.setText(text)
+
+    def make_crono_materie(self):
+        self.crono_materie = {}
+        for voto in self.list_voti:
+            materia = voto[1]
+            if materia not in self.crono_materie:
+                self.crono_materie[materia] = []
+            self.crono_materie[materia].append([voto[0], voto[2]])
+
+    def make_label_media_materie(self):	
+        if len(self.crono_materie) != 0:
+            text = ""
+            for materia, voti in self.crono_materie.items():
+                media_materia = 0
+                peso = 0
+                for voto in voti:
+                    media_materia += voto[0] * (voto[1] / 100)
+                    peso += (voto[1] / 100)
+                media_materia = (media_materia / peso) if peso != 0 else 0
+                media_materia = str(round(media_materia, 2))
+                text += "%s: %s\n" % (materia, media_materia)
+        else:
+            text = default_media_materie
+        self.label_media_materie.setText(text)
 
 class DialogAggiungiVoto(QDialog):
-	def __init__(self, parent=None):
-		super().__init__(parent)
-		self.setWindowTitle("Aggiungi Voto")
-		self.votolabel = QLabel("Inserisci il voto:")
-		self.matlabel = QLabel("Inserisci la materia:")
-		self.votoinput = QLineEdit()
-		self.votoinput.setPlaceholderText("Voto (0.0-10.0)")
-		self.matinput = QLineEdit()
-		self.matinput.setPlaceholderText("Materia")
-		buttonbox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-		buttonbox.accepted.connect(self.okvoto)
-		buttonbox.rejected.connect(self.reject)
-		layout = QGridLayout()
-		layout.addWidget(self.votolabel, 0, 0)
-		layout.addWidget(self.votoinput, 0, 1)
-		layout.addWidget(self.matlabel, 1, 0)
-		layout.addWidget(self.matinput, 1, 1)
-		layout.addWidget(buttonbox, 2, 0, 1, 2)
-		self.setLayout(layout)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Aggiungi Voto")
+        self.votolabel = QLabel("Inserisci il voto:")
+        self.matlabel = QLabel("Inserisci la materia:")
+        self.pesolabel = QLabel("Inserisci il peso:")
+        self.votoinput = QLineEdit()
+        self.votoinput.setPlaceholderText("Voto (0.0-100.0)")
+        self.matinput = QLineEdit()
+        self.matinput.setPlaceholderText("Materia")
+        self.pesoinput = QLineEdit()
+        self.pesoinput.setPlaceholderText("Peso (1-100)")
+        self.pesoinput.setText("100")
+        buttonbox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttonbox.accepted.connect(self.okvoto)
+        buttonbox.rejected.connect(self.reject)
+        layout = QGridLayout()
+        layout.addWidget(self.votolabel, 0, 0)
+        layout.addWidget(self.votoinput, 0, 1)
+        layout.addWidget(self.matlabel, 1, 0)
+        layout.addWidget(self.matinput, 1, 1)
+        layout.addWidget(self.pesolabel, 2, 0)
+        layout.addWidget(self.pesoinput, 2, 1)
+        layout.addWidget(buttonbox, 3, 0, 1, 2)
+        self.setLayout(layout)
 
-	def okvoto(self):
-		try:
-			voto = float(self.votoinput.text().strip())
-			materia = self.matinput.text().strip()
-			if voto < 0 or voto > 10:
-				raise ValueError
-			if materia == "":
-				QMessageBox.warning(self, "Errore", "Inserisci una materia valida.")
-				return
-		except ValueError:
-			QMessageBox.warning(self, "Errore", "Inserisci un voto valido.")
-			return
-		listvoti.append([voto, materia])
-		if materia not in crono_materie:
-			crono_materie[materia] = []
-		crono_materie[materia].append(voto)
-		self.parent().aggiorna()
-		super().accept()
+    def okvoto(self):
+        try:
+            voto = float(self.votoinput.text().strip())
+        except ValueError:
+            QMessageBox.warning(self, "Errore", "Inserisci un voto valido.")
+            return
+        materia = self.matinput.text().strip()
+        try:
+            peso = int(self.pesoinput.text().strip())
+        except ValueError:
+            QMessageBox.warning(self, "Errore", "Inserisci un peso valido.")
+            return
+        if peso < 1 or peso > 100:
+            QMessageBox.warning(self, "Errore", "Inserisci un peso valido (1-100).")
+            return
+        if voto < 0 or voto > 100:
+            QMessageBox.warning(self, "Errore", "Inserisci un voto valido (0.0-100.0).")
+            return
+        if materia == "":
+            QMessageBox.warning(self, "Errore", "Inserisci una materia valida.")
+            return
+        parent = self.parent()
+        parent.list_voti.append([voto, materia, peso])
+        parent.make_crono_materie()
+        parent.aggiorna()
+        super().accept()
 
 app = QApplication([])
 window = MainWindow()
