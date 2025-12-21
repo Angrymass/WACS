@@ -5,6 +5,12 @@ default_crono = "Nessun Voto"
 default_media_tot = "Nessun Voto"
 default_media_materie = "Nessuna Materia"
 
+def resource_path(relative_path):
+    import sys, os
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
 class MainWindow(QMainWindow):
 
     def __init__(self):
@@ -17,11 +23,8 @@ class MainWindow(QMainWindow):
         self.label_media_materie_text = default_media_materie
 
         self.setWindowTitle("Calcolatore Media Ponderata Materie")
+        self.setWindowIcon(QIcon(resource_path("Tachimetro.ico")))
         self.setMinimumSize(300, 300)
-        try:
-            self.setWindowIcon(QIcon("Tachimetro.png"))
-        except:
-            pass
         self.label_crono_voti = QLabel(self.label_crono_voti_text)
         self.label_crono_voti.setWordWrap(True)
 
